@@ -3,7 +3,7 @@
   <groupId>org.zkoss.common</groupId>
   <artifactId>zcommon</artifactId>
   <versioning>
-    <release>10.3.0.1</release>
+    <release>11.0.0.FL.20260930-Eval</release>
     <versions>
       <version>9.0.1</version>
       <version>9.0.1.2</version>
@@ -17,7 +17,8 @@
       <version>9.6.5</version>
       <version>10.0.1</version>
       <version>10.3.0.1</version>
+      <version>11.0.0.FL.20260930-Eval</version>
     </versions>
-    <lastUpdated>20260412160815</lastUpdated>
+    <lastUpdated>20261004114132</lastUpdated>
   </versioning>
 </metadata>

@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>org.zkoss.theme</groupId>
+	<artifactId>marble</artifactId>
+	<version>11.0.0.FL.20261002</version>
+	<properties>
+		<maven.compiler.source>17</maven.compiler.source>
+		<maven.compiler.target>17</maven.compiler.target>
+		<zk.version>11.0.0-jakarta.FL.20260909</zk.version>
+		<zkspringboot.version>3.2.6</zkspringboot.version>
+		<springboot.version>3.2.6</springboot.version>
+		<maven.build.timestamp.format>yyyy-MM-dd</maven.build.timestamp.format>
+		<!-- CI/release builds set -Dskip.watch.css=true so the async dev-mode watcher cannot overwrite the minified CSS before packaging -->
+		<skip.watch.css>false</skip.watch.css>
+		<packname>-${project.version}</packname>
+		<zktheme.resources>${project.basedir}/src/main/resources</zktheme.resources>
+		<zktheme.web.resources>${zktheme.resources}/web</zktheme.web.resources>
+		<zktheme.theme.outputDirectory>${project.build.outputDirectory}/web/${project.artifactId}</zktheme.theme.outputDirectory>
+	</properties>
+	<packaging>jar</packaging>
+	<name>marble</name>
+	<scm>
+		<url>https://mavensync.zkoss.org/maven2</url>
+	</scm>
+	<description>Material Design theme</description>
+	<licenses>
+		<license>
+			<name>GNU LESSER GENERAL PUBLIC LICENSE, Version 3</name>
+			<url>https://www.gnu.org/licenses/gpl.html</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
+	<developers>
+		<developer>
+			<id>zkteam</id>
+			<name>ZK Team</name>
+			<email>info@zkoss.org</email>
+			<url>https://www.zkoss.org</url>
+			<organization>Potix</organization>
+			<organizationUrl>https://www.zkoss.org</organizationUrl>
+			<roles>
+				<role>architect</role>
+				<role>developer</role>
+			</roles>
+			<timezone>Asia/Taipei</timezone>
+			<properties>
+				<picUrl>https://www.zkoss.org</picUrl>
+			</properties>
+		</developer>
+	</developers>
+	<repositories>
+		<repository>
+			<id>ZK CE</id>
+			<name>ZK CE Repository</name>
+			<url>https://mavensync.zkoss.org/maven2</url>
+		</repository>
+		<repository>
+			<id>ZK EE Evaluation</id>
+			<url>https://mavensync.zkoss.org/eval/</url>
+		</repository>
+		<repository>
+			<id>ZK EE</id>
+			<url>https://maven.zkoss.org/repo/zk/ee</url>
+		</repository>
+	</repositories>
+	<pluginRepositories>
+		<pluginRepository>
+			<id>zkmaven</id>
+			<name>ZK Maven Plugin Repository</name>
+			<url>https://mavensync.zkoss.org/maven2/</url>
+		</pluginRepository>
+	</pluginRepositories>
+	<dependencies>
+		<dependency>
+			<groupId>org.zkoss.zk</groupId>
+			<artifactId>zkmax</artifactId>
+			<version>${zk.version}</version>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.zkoss.zk</groupId>
+			<artifactId>zuti</artifactId>
+			<version>${zk.version}</version>
+			<optional>true</optional>
+		</dependency>
+		<!-- test dependencies for preview app -->
+		<!-- za11y draws `.z-portallayout-popup*` and nothing else does. It is an optional
+		     language addon (`<depends>zkmax</depends>`, one-way), so zkmax does NOT pull it in and
+		     those four rules in js/zkmax/layout/css/portallayout.css are otherwise unreachable by
+		     any interaction — a visual harness then reports a guaranteed zero for them, which is an
+		     absent module rather than evidence. Producer: `web/js/za11y/zkmax/layout-a11y.ts`
+		     (zkcml commit 1f96cbf4a, "refine ZK-4598", 2020-05-27) — Portallayout gains a keyboard
+		     "move this panel to which column" list, opened from `doKeyDown_` on Space over a
+		     `zul.wnd.Panel`.
+		     LOAD-BEARING FOR THE ICEBLUE WORKTREE: its visual A/B harness builds the preview app's
+		     runtime classpath from THIS pom (scripts/ab-visual.js marbleClasspath()), so removing
+		     this line silently un-covers that surface over there as well as here.
+		     `test` scope: the published theme artifact must not tell consumers it needs the a11y
+		     addon. -->
+		<dependency>
+			<groupId>org.zkoss.zk</groupId>
+			<artifactId>za11y</artifactId>
+			<version>${zk.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.zkoss.zkspringboot</groupId>
+			<artifactId>zkspringboot-autoconfig</artifactId>
+			<version>${zkspringboot.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+			<version>${springboot.version}</version>
+			<type>pom</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<version>${springboot.version}</version>
+			<scope>test</scope>
+			<optional>true</optional>
+		</dependency>
+	</dependencies>
+	<build>
+		<resources>
+			<!-- handle class web resources separately below -->
+			<resource>
+				<directory>${zktheme.resources}</directory>
+				<excludes>
+					<exclude>web/**</exclude>
+				</excludes>
+			</resource>
+			<!-- copy CSS files into theme folder -->
+			<resource>
+				<directory>${zktheme.web.resources}</directory>
+				<targetPath>${zktheme.theme.outputDirectory}</targetPath>
+			</resource>
+		</resources>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.6.0</version>
+				<executions>
+					<execution>
+						<id>compile-css</id>
+						<phase>generate-resources</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>npm</executable>
+							<arguments>
+								<argument>run</argument>
+								<argument>build:css</argument>
+							</arguments>
+						</configuration>
+					</execution>
+					<execution>
+						<id>preview-app</id>
+						<goals>
+							<goal>java</goal>
+						</goals>
+						<configuration>
+							<mainClass>zk.example.ThemePreviewApp</mainClass>
+							<classpathScope>test</classpathScope>
+						</configuration>
+					</execution>
+					<execution>
+						<id>preview-app-iceblue</id>
+						<goals>
+							<goal>java</goal>
+						</goals>
+						<configuration>
+							<mainClass>zk.example.iceblue.ThemePreviewIceblueApp</mainClass>
+							<classpathScope>test</classpathScope>
+						</configuration>
+					</execution>
+					<execution> <!-- lint: preview ZULs may only use Lucide icon names (Rule 2 of doc/spec/icon-policy.md) -->
+						<id>check-icon-coverage</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>${project.basedir}/scripts/check-icon-coverage.sh</executable>
+						</configuration>
+					</execution>
+					<execution>
+						<!-- Gate: every `<css-uri>` ZK declares must exist in the built theme.
+						     A ZK upgrade that adds a component (ZK 11 added `codeeditor`) otherwise
+						     ships a silent 404 that only shows up as an unstyled widget in a browser.
+						     Runs after compile-css (generate-resources) so it checks real output.
+
+						     Exit codes are load-bearing, which is why `successCodes` is not the
+						     default: 1 = a css-uri ZK requests is genuinely missing -> FAIL the
+						     build; 2 = this machine cannot verify (no ZK source at ZK_HOME, or no
+						     theme build dir) -> tolerated, so a checkout without the ZK source
+						     tree beside it still builds. Point it elsewhere with -DZK_HOME=... via
+						     the environment if your ZK source lives outside the default path. -->
+						<id>check-css-dsp</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>npm</executable>
+							<arguments>
+								<argument>run</argument>
+								<argument>check:css-dsp</argument>
+							</arguments>
+							<successCodes>
+								<successCode>0</successCode>
+								<successCode>2</successCode>
+							</successCodes>
+						</configuration>
+					</execution>
+					<execution>
+						<!-- A file that is in git must not depend on a file that is not. `tasks/` is
+						     gitignored scratch, so a tracked document linking into it is a link that can
+						     vanish with no diff, no history and no way back - which is exactly how twelve
+						     references had already gone dead by 2026-09-09. See
+						     doc/documentation-conventions.md.
+
+						     Exit codes are load-bearing: 1 = a tracked file depends on an untracked or
+						     missing path -> FAIL the build; 2 = cannot verify (not a git checkout, or git
+						     unavailable) -> tolerated, so an exported source tree still builds. -->
+						<id>check-doc-links</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>npm</executable>
+							<arguments>
+								<argument>run</argument>
+								<argument>check:doc-links</argument>
+							</arguments>
+							<successCodes>
+								<successCode>0</successCode>
+								<successCode>2</successCode>
+							</successCodes>
+						</configuration>
+					</execution>
+					<execution> <!-- stamp HEAD commit date+hash for the use-case sidebar build marker -->
+						<id>stamp-commit</id>
+						<phase>process-test-resources</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>${project.basedir}/scripts/stamp-commit.sh</executable>
+						</configuration>
+					</execution>
+					<execution> <!-- continuous compile/watch CSS files -->
+						<id>watch-css</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>exec</goal>
+						</goals>
+						<configuration>
+							<executable>npm</executable>
+							<arguments>
+								<argument>run</argument>
+								<argument>watch</argument>
+							</arguments>
+							<async>true</async>
+							<skip>${skip.watch.css}</skip>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<!-- Build jar -->
+			<plugin>
+				<groupId>org.apache.felix</groupId>
+				<artifactId>maven-bundle-plugin</artifactId>
+				<version>2.3.7</version>
+				<extensions>true</extensions>
+				<configuration>
+					<excludeDependencies>*;scope=provided|compile|runtime</excludeDependencies>
+					<instructions>
+						<_include>${project.basedir}/src/archive/META-INF/MANIFEST.MF</_include>
+						<Bundle-Version>${project.version}</Bundle-Version>
+						<Bundle-Name>${project.groupId}.${project.artifactId}</Bundle-Name>
+						<Bundle-SymbolicName>${project.artifactId}</Bundle-SymbolicName>
+						<Export-Package>*</Export-Package>
+						<Import-Package>*</Import-Package>
+					</instructions>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-source-plugin</artifactId>
+				<version>3.2.1</version>
+				<executions>
+					<execution>
+						<id>attach-sources</id>
+						<goals>
+							<goal>jar-no-fork</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.2</version>
+				<executions>
+					<execution>
+						<id>bin</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<appendAssemblyId>false</appendAssemblyId>
+							<descriptors>
+								<descriptor>assembly/zip.xml</descriptor>
+							</descriptors>
+						</configuration>
+					</execution>
+					<execution>
+						<id>bundle</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<configuration>
+							<descriptors>
+								<descriptor>assembly/bundle.xml</descriptor>
+							</descriptors>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
